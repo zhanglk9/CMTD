@@ -17,39 +17,14 @@ def convert_to_train_id(file):
     # re-assign labels to match the format of Cityscapes
     pil_label = Image.open(file)
     label = np.asarray(pil_label)
-    id_to_trainid = {
-        7: 0,
-        8: 1,
-        11: 2,
-        12: 3,
-        13: 4,
-        17: 5,
-        19: 6,
-        20: 7,
-        21: 8,
-        22: 9,
-        23: 10,
-        24: 11,
-        25: 12,
-        26: 13,
-        27: 14,
-        28: 15,
-        31: 16,
-        32: 17,
-        33: 18
-    }
-    label_copy = 255 * np.ones(label.shape, dtype=np.uint8)
+    id_to_trainid = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
     sample_class_stats = {}
-    for k, v in id_to_trainid.items():
-        k_mask = label == k
-        label_copy[k_mask] = v
+    for v in id_to_trainid:
+        k_mask = label == v
         n = int(np.sum(k_mask))
         if n > 0:
             sample_class_stats[v] = n
-    new_file = file.replace('.png', '_labelTrainIds.png')
-    assert file != new_file
-    sample_class_stats['file'] = new_file
-    Image.fromarray(label_copy, mode='L').save(new_file)
+    sample_class_stats['file'] = file
     return sample_class_stats
 
 
@@ -83,7 +58,7 @@ def save_class_stats(out_dir, sample_class_stats):
                 samples_with_class[c] = [(file, n)]
             else:
                 samples_with_class[c].append((file, n))
-    import ipdb;ipdb.set_trace()
+    # import ipdb;ipdb.set_trace()
     with open(osp.join(out_dir, 'samples_with_class.json'), 'w') as of:
         json.dump(samples_with_class, of, indent=2)
 
@@ -98,7 +73,7 @@ def main():
 
     poly_files = []
     for poly in mmcv.scandir(
-            gt_dir, suffix=tuple(f'{i}.png' for i in range(10)),
+            gt_dir, suffix=tuple('_labelTrainIds.png'),
             recursive=True):
         poly_file = osp.join(gt_dir, poly)
         poly_files.append(poly_file)

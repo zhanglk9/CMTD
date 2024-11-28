@@ -235,6 +235,9 @@ class HRDAEncoderDecoder(EncoderDecoder):
         """
         losses = dict()
 
+        # import ipdb;ipdb.set_trace()
+
+
         mres_feats, prob_vis = self._forward_train_features(img)
         for i, s in enumerate(self.scales):
             if return_feat and self.feature_scale in \

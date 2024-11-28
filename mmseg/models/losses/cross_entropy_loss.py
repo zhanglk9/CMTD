@@ -189,6 +189,7 @@ class CrossEntropyLoss(nn.Module):
             class_weight = cls_score.new_tensor(self.class_weight)
         else:
             class_weight = None
+        # import ipdb;ipdb.set_trace()
         loss_cls = self.loss_weight * self.cls_criterion(
             cls_score,
             label,

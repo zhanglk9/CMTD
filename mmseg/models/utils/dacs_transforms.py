@@ -96,6 +96,19 @@ def get_class_masks(labels):
             nclasses, int((nclasses + nclasses % 2) / 2), replace=False)
         classes = classes[torch.Tensor(class_choice).long()]
         class_masks.append(generate_class_mask(label, classes).unsqueeze(0))
+    # import ipdb; ipdb.set_trace()
+    return class_masks
+
+def get_class_masks_rare(labels):
+    class_masks = []
+    # rcs_class = 
+    rcs_class_tensor = torch.tensor([18, 12, 17, 16, 7, 6, 11, 4, 5, 3, 9]).to(labels.device)
+    for label in labels:
+        classes = torch.unique(labels)
+        intersection = torch.tensor([cls for cls in classes if cls in rcs_class_tensor]).to(labels.device)
+        # classes = classes[torch.Tensor(intersection).long()]
+        class_masks.append(generate_class_mask(label, intersection).unsqueeze(0))
+    # import ipdb; ipdb.set_trace()
     return class_masks
 
 
@@ -117,4 +130,17 @@ def one_mix(mask, data=None, target=None):
         stackedMask0, _ = torch.broadcast_tensors(mask[0], target[0])
         target = (stackedMask0 * target[0] +
                   (1 - stackedMask0) * target[1]).unsqueeze(0)
+    return data, target
+
+
+def mix(mask, data = None, target = None):
+    #Mix
+    if not (data is None):
+        if mask.shape[0] == data.shape[0]:
+            data = torch.cat([(mask[i] * data[i] + (1 - mask[i]) * data[(i + 1) % data.shape[0]]).unsqueeze(0) for i in range(data.shape[0])])
+        elif mask.shape[0] == data.shape[0] / 2:
+            data = torch.cat((torch.cat([(mask[i] * data[2 * i] + (1 - mask[i]) * data[2 * i + 1]).unsqueeze(0) for i in range(int(data.shape[0] / 2))]),
+                              torch.cat([((1 - mask[i]) * data[2 * i] + mask[i] * data[2 * i + 1]).unsqueeze(0) for i in range(int(data.shape[0] / 2))])))
+    if not (target is None):
+        target = torch.cat([(mask[i] * target[i] + (1 - mask[i]) * target[(i + 1) % target.shape[0]]).unsqueeze(0) for i in range(target.shape[0])])
     return data, target
