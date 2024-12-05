@@ -17,22 +17,25 @@ import math
 import os
 import random
 from copy import deepcopy
-
+import cv2
+import torch.nn.functional as F
 import mmcv
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from timm.models.layers import DropPath
 from torch.nn.modules.dropout import _DropoutNd
-from torch.nn.parallel.distributed import _find_tensors
+
 from mmseg.core import add_prefix
 from mmseg.models import UDA, HRDAEncoderDecoder, build_segmentor
 from mmseg.models.segmentors.hrda_encoder_decoder import crop
 from mmseg.models.uda.uda_decorator import UDADecorator, get_module
-from mmseg.models.utils.dacs_transforms import (denorm, get_class_masks,
+from mmseg.models.utils.dacs_transforms import (denorm, get_class_masks,generate_class_mask,get_class_masks_rare,
                                                 get_mean_std, strong_transform)
 from mmseg.models.utils.visualization import subplotimg
 from mmseg.utils.utils import downscale_label_ratio
+
+import colorsys
 
 
 def _params_equal(ema_model, model):
@@ -120,7 +123,7 @@ class DACS(UDADecorator):
                     alpha_teacher * ema_param[:].data[:] + \
                     (1 - alpha_teacher) * param[:].data[:]
 
-    def train_step(self, data_batch, optimizer, ddp_reducer=None, **kwargs):
+    def train_step(self, data_batch, optimizer, **kwargs):
         """The iteration step during training.
 
         This method defines an iteration step during training, except for the
@@ -146,7 +149,7 @@ class DACS(UDADecorator):
                 DDP, it means the batch size on each GPU), which is used for
                 averaging the logs.
         """
-        self.ddp_reducer = ddp_reducer  # store ddp reducer
+
         optimizer.zero_grad()
         log_vars = self(**data_batch)
         optimizer.step()
@@ -154,7 +157,6 @@ class DACS(UDADecorator):
         log_vars.pop('loss', None)  # remove the unnecessary 'loss'
         outputs = dict(
             log_vars=log_vars, num_samples=len(data_batch['img_metas']))
-        self.ddp_reducer = None  # drop ddp reducer
         return outputs
 
     def masked_feat_dist(self, f1, f2, mask=None):
@@ -269,6 +271,7 @@ class DACS(UDADecorator):
         Returns:
             dict[str, Tensor]: a dictionary of loss components
         """
+        # import ipdb; ipdb.set_trace()
         log_vars = {}
         batch_size = img.shape[0]
         dev = img.device
@@ -297,14 +300,18 @@ class DACS(UDADecorator):
         }
 
         # Train on source images
+        #源图像训练+loss
+
         clean_losses = self.get_model().forward_train(
             img, img_metas, gt_semantic_seg, return_feat=True)
         src_feat = clean_losses.pop('features')
         seg_debug['Source'] = self.get_model().decode_head.debug_output
         clean_loss, clean_log_vars = self._parse_losses(clean_losses)
         log_vars.update(clean_log_vars)
-        if getattr(self, "ddp_reducer", None):
-            self.ddp_reducer.prepare_for_backward(_find_tensors(clean_loss))
+        # edg_loss.backward()
+        # clean_loss = clean_loss + edg_loss.item()
+
+        # import ipdb;ipdb.set_trace()
         clean_loss.backward(retain_graph=self.enable_fdist)
         if self.print_grad_magnitude:
             params = self.get_model().backbone.parameters()
@@ -319,8 +326,6 @@ class DACS(UDADecorator):
             feat_loss, feat_log = self.calc_feat_dist(img, gt_semantic_seg,
                                                       src_feat)
             log_vars.update(add_prefix(feat_log, 'src'))
-            if getattr(self, "ddp_reducer", None):
-                self.ddp_reducer.prepare_for_backward(_find_tensors(feat_loss))
             feat_loss.backward()
             if self.print_grad_magnitude:
                 params = self.get_model().backbone.parameters()
@@ -340,12 +345,14 @@ class DACS(UDADecorator):
                 m.training = False
             if isinstance(m, DropPath):
                 m.training = False
+        #目标图像的伪标签生成
         ema_logits = self.get_ema_model().generate_pseudo_label(
             target_img, target_img_metas)
         seg_debug['Target'] = self.get_ema_model().decode_head.debug_output
 
         ema_softmax = torch.softmax(ema_logits.detach(), dim=1)
         del ema_logits
+        #目标图像类的label
         pseudo_prob, pseudo_label = torch.max(ema_softmax, dim=1)
         ps_large_p = pseudo_prob.ge(self.pseudo_threshold).long() == 1
         ps_size = np.size(np.array(pseudo_label.cpu()))
@@ -368,6 +375,9 @@ class DACS(UDADecorator):
         gt_pixel_weight = torch.ones((pseudo_weight.shape), device=dev)
 
         # Apply mixing
+
+        #原代码已经添加mix操作，可以加不同的（data与data混合；target与target混合）
+
         mixed_img, mixed_lbl = [None] * batch_size, [None] * batch_size
         mix_masks = get_class_masks(gt_semantic_seg)
 
@@ -380,7 +390,8 @@ class DACS(UDADecorator):
             _, pseudo_weight[i] = strong_transform(
                 strong_parameters,
                 target=torch.stack((gt_pixel_weight[i], pseudo_weight[i])))
-        del gt_pixel_weight
+        # del gt_pixel_weight
+        # torch.cuda.empty_cache()
         mixed_img = torch.cat(mixed_img)
         mixed_lbl = torch.cat(mixed_lbl)
 
@@ -391,9 +402,83 @@ class DACS(UDADecorator):
         mix_losses = add_prefix(mix_losses, 'mix')
         mix_loss, mix_log_vars = self._parse_losses(mix_losses)
         log_vars.update(mix_log_vars)
-        if getattr(self, "ddp_reducer", None):
-            self.ddp_reducer.prepare_for_backward(_find_tensors(mix_loss))
         mix_loss.backward()
+        # import ipdb; ipdb.set_trace()
+        #==========add==================
+        # del mixed_img
+        # del mixed_lbl
+        # del mix_losses
+        # del mix_log_vars
+        # del mix_masks
+        # torch.cuda.empty_cache()
+        # import ipdb; ipdb.set_trace()
+
+        if self.local_iter > 25000:
+            mixed_img, mixed_lbl = [None] * batch_size, [None] * batch_size
+            mix_masks = get_class_masks(pseudo_label)
+
+            for i in range(batch_size):
+                # import ipdb; ipdb.set_trace()
+                strong_parameters['mix'] = mix_masks[i]
+                if i==0:
+                    mixed_img[i], mixed_lbl[i] = strong_transform(
+                        strong_parameters,
+                        data=torch.stack((target_img[i+1], target_img[i])),
+                        target=torch.stack((pseudo_label[i+1], pseudo_label[i])))
+                    _, pseudo_weight[i] = strong_transform(
+                        strong_parameters,
+                        target=torch.stack((pseudo_weight[i+1], pseudo_weight[i])))
+                else:
+                    mixed_img[i], mixed_lbl[i] = strong_transform(
+                        strong_parameters,
+                        data=torch.stack((target_img[i], target_img[i-1])),
+                        target=torch.stack((pseudo_label[i], pseudo_label[i-1])))
+                    _, pseudo_weight[i] = strong_transform(
+                        strong_parameters,
+                        target=torch.stack((pseudo_weight[i], pseudo_weight[i-1])))
+            # del gt_pixel_weight
+            mixed_img = torch.cat(mixed_img)
+            mixed_lbl = torch.cat(mixed_lbl)
+
+            # Train on mixed images
+            mix_losses = self.get_model().forward_train(
+                mixed_img, target_img_metas, mixed_lbl, pseudo_weight, return_feat=False)
+            seg_debug['Mix'] = self.get_model().decode_head.debug_output
+            mix_losses = add_prefix(mix_losses, 'mix')
+            mix_loss, mix_log_vars = self._parse_losses(mix_losses)
+            log_vars.update(mix_log_vars)
+            mix_loss.backward()
+        # else:
+        #     mixed_img, mixed_lbl = [None] * batch_size, [None] * batch_size
+
+        #     mix_masks = get_class_masks(gt_semantic_seg)
+
+        #     for i in range(batch_size):
+        #         # import ipdb; ipdb.set_trace()
+        #         strong_parameters['mix'] = mix_masks[i]
+        #         if i==0:
+        #             mixed_img[i], mixed_lbl[i] = strong_transform(
+        #                 strong_parameters,
+        #                 data=torch.stack((img[i+1], img[i])),
+        #                 target=torch.stack((gt_semantic_seg[i+1], gt_semantic_seg[i])))
+        #         else:
+        #             mixed_img[i], mixed_lbl[i] = strong_transform(
+        #                 strong_parameters,
+        #                 data=torch.stack((img[i], img[i-1])),
+        #                 target=torch.stack((gt_semantic_seg[i], gt_semantic_seg[i-1])))
+        #     # del gt_pixel_weight
+        #     mixed_img = torch.cat(mixed_img)
+        #     mixed_lbl = torch.cat(mixed_lbl)
+
+        #     # Train on mixed images
+        #     mix_losses = self.get_model().forward_train(
+        #         mixed_img, img_metas, mixed_lbl, gt_pixel_weight, return_feat=False)
+        #     # seg_debug['Mix'] = self.get_model().decode_head.debug_output
+        #     mix_losses = add_prefix(mix_losses, 'mix')
+        #     mix_loss, mix_log_vars = self._parse_losses(mix_losses)
+        #     # log_vars.update(mix_log_vars)
+        #     # mix_loss = mix_loss + (mix_loss2 / 2.0)
+        #     mix_loss.backward()
 
         if self.local_iter % self.debug_img_interval == 0:
             out_dir = os.path.join(self.train_cfg['work_dir'],

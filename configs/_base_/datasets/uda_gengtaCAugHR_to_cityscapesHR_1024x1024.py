@@ -1,33 +1,27 @@
-# ---------------------------------------------------------------
-# Copyright (c) 2022 ETH Zurich, Lukas Hoyer. All rights reserved.
-# Licensed under the Apache License, Version 2.0
-# ---------------------------------------------------------------
-
-# dataset settings
 dataset_type = 'CityscapesDataset'
 data_root = '/data/dushiyan/cityscapes/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 crop_size = (1024, 1024)
+gen_train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations'),
+    dict(type='Resize', img_scale=crop_size),
+    # dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+    dict(type='RandomFlip', prob=0.5),
+    dict(type='PhotoMetricDistortion'),
+    dict(type='Normalize', **img_norm_cfg),
+    # dict(type='Pad', size=crop_size, pad_val=0, seg_pad_val=255),
+    dict(type='DefaultFormatBundle'),
+    dict(type='Collect', keys=['img', 'gt_semantic_seg']),
+]
 gta_train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
     dict(type='Resize', img_scale=(2560, 1440)),
     dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
     dict(type='RandomFlip', prob=0.5),
-    # dict(type='PhotoMetricDistortion'),  # is applied later in dacs.py
-    dict(type='Normalize', **img_norm_cfg),
-    dict(type='Pad', size=crop_size, pad_val=0, seg_pad_val=255),
-    dict(type='DefaultFormatBundle'),
-    dict(type='Collect', keys=['img', 'gt_semantic_seg']),
-]
-cityscapes_train_pipeline = [
-    dict(type='LoadImageFromFile'),
-    dict(type='LoadAnnotations'),
-    dict(type='Resize', img_scale=(2048, 1024)),
-    dict(type='RandomCrop', crop_size=crop_size),
-    dict(type='RandomFlip', prob=0.5),
-    # dict(type='PhotoMetricDistortion'),  # is applied later in dacs.py
+    dict(type='PhotoMetricDistortion'),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size=crop_size, pad_val=0, seg_pad_val=255),
     dict(type='DefaultFormatBundle'),
@@ -50,11 +44,44 @@ test_pipeline = [
             dict(type='Collect', keys=['img']),
         ])
 ]
+cityscapes_train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations'),
+    dict(type='Resize', img_scale=(2048, 1024)),
+    dict(type='RandomCrop', crop_size=crop_size),
+    dict(type='RandomFlip', prob=0.5),
+    # dict(type='PhotoMetricDistortion'),  # is applied later in dacs.py
+    dict(type='Normalize', **img_norm_cfg),
+    dict(type='Pad', size=crop_size, pad_val=0, seg_pad_val=255),
+    dict(type='DefaultFormatBundle'),
+    dict(type='Collect', keys=['img', 'gt_semantic_seg']),
+]
 data = dict(
-    samples_per_gpu=1,
+    samples_per_gpu=2,
     workers_per_gpu=4,
     train=dict(
         type='UDADataset',
+        source=dict(
+            type='GTADataset',
+            data_root='/data/dushiyan/gta5/',
+            img_dir='images',
+            ann_dir='labels',
+            pipeline=gta_train_pipeline),
+        target=dict(
+            type='CityscapesDataset',
+            data_root='/data/dushiyan/cityscapes/',
+            img_dir='leftImg8bit/train',
+            ann_dir='gtFine/train',
+            pipeline=cityscapes_train_pipeline)),
+    train2=dict(
+        type='UDADataset',
+        source2=dict(
+            type='GTADataset',
+            #data_root='/data/dushiyan/dg_rcs/gta4000_rcs1e-2',
+            data_root='/data/dushiyan/half_adverse_half_normal',
+            img_dir='images',
+            ann_dir='labels',
+            pipeline=gen_train_pipeline),
         source=dict(
             type='GTADataset',
             data_root='/data/dushiyan/gta5/',

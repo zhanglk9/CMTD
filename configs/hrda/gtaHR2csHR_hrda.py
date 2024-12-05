@@ -9,7 +9,8 @@ _base_ = [
     # DAFormer Network Architecture
     '../_base_/models/daformer_sepaspp_mitb5.py',
     # GTA->Cityscapes High-Resolution Data Loading
-    '../_base_/datasets/uda_gtaHR_to_cityscapesHR_1024x1024.py',
+     '../_base_/datasets/uda_gtaHR_to_cityscapesHR_1024x1024.py',
+    #'../_base_/datasets/uda_gengtaCAugHR_to_cityscapesHR_1024x1024.py',
     # DAFormer Self-Training
     '../_base_/uda/dacs_a999_fdthings.py',
     # AdamW Optimizer
@@ -30,24 +31,24 @@ model = dict(
         attention_classwise=True,
         # Set the detail loss weight $\lambda_d=0.1$.
         hr_loss_weight=0.1),
-    # Use the full resolution for the detail crop and half the resolution for
-    # the context crop.
-    scales=[1, 0.5],
-    # Use a relative crop size of 0.5 (=512/1024) for the detail crop.
-    hr_crop_size=[512, 512],
-    # Use LR features for the Feature Distance as in the original DAFormer.
-    feature_scale=0.5,
-    # Make the crop coordinates divisible by 8 (output stride = 4,
-    # downscale factor = 2) to ensure alignment during fusion.
-    crop_coord_divisible=8,
-    # Use overlapping slide inference for detail crops for pseudo-labels.
-    hr_slide_inference=True,
-    # Use overlapping slide inference for fused crops during test time.
-    test_cfg=dict(
-        mode='slide',
-        batched_slide=True,
-        stride=[512, 512],
-        crop_size=[1024, 1024]))
+        # Use the full resolution for the detail crop and half the resolution for
+        # the context crop.
+        scales=[1, 0.5],
+        # Use a relative crop size of 0.5 (=512/1024) for the detail crop.
+        hr_crop_size=[512, 512],
+        # Use LR features for the Feature Distance as in the original DAFormer.
+        feature_scale=0.5,
+        # Make the crop coordinates divisible by 8 (output stride = 4,
+        # downscale factor = 2) to ensure alignment during fusion.
+        crop_coord_divisible=8,
+        # Use overlapping slide inference for detail crops for pseudo-labels.
+        hr_slide_inference=True,
+        # Use overlapping slide inference for fused crops during test time.
+        test_cfg=dict(
+            mode='slide',
+            batched_slide=True,
+            stride=[512, 512],
+            crop_size=[1024, 1024]))
 data = dict(
     train=dict(
         # Rare Class Sampling
@@ -63,25 +64,44 @@ data = dict(
         # image.
         target=dict(crop_pseudo_margins=[30, 240, 30, 30]),
     ),
+    # train2=dict(
+    #     # Rare Class Sampling
+    #     # min_crop_ratio=2.0 for HRDA instead of min_crop_ratio=0.5 for
+    #     # DAFormer as HRDA is trained with twice the input resolution, which
+    #     # means that the inputs have 4 times more pixels.
+    #     rare_class_sampling=dict(
+    #         min_pixels=3000, class_temp=0.01, min_crop_ratio=2.0),
+    #     # Pseudo-Label Cropping v2:
+    #     # Generate mask of the pseudo-label margins in the data loader before
+    #     # the image itself is cropped to ensure that the pseudo-label margins
+    #     # are only masked out if the training crop is at the periphery of the
+    #     # image.
+    #     target=dict(crop_pseudo_margins=[30, 240, 30, 30]),
+    #     ),
     # Use one separate thread/worker for data loading.
     workers_per_gpu=1)
 # Optimizer Hyperparameters
 optimizer_config = None
 optimizer = dict(
-    lr=6e-05,
+    lr=2e-05,
     paramwise_cfg=dict(
         custom_keys=dict(
             head=dict(lr_mult=10.0),
             pos_block=dict(decay_mult=0.0),
             norm=dict(decay_mult=0.0))))
 n_gpus = 1
-gpu_model = 'NVIDIATITANRTX'
-runner = dict(type='IterBasedRunner', max_iters=40000)
+gpu_model = 'NVIDIATRTX3090'
+# runner = dict(type='IterBasedRunner', max_iters=80000)
+runner = dict(
+    type='DynamicIterBasedRunner',
+    is_dynamic_ddp=True,
+    pass_training_status=True,
+    max_iters=80000)
 # Logging Configuration
-checkpoint_config = dict(by_epoch=False, interval=40000, max_keep_ckpts=1)
+checkpoint_config = dict(by_epoch=False, interval=5000, max_keep_ckpts=1)
 evaluation = dict(interval=4000, metric='mIoU')
 # Meta Information for Result Analysis
-name = 'gtaHR2csHR_hrda_s1'
+name = 'disablefd_2e-05_80000_iters'
 exp = 'basic'
 name_dataset = 'gtaHR2cityscapesHR_1024x1024'
 name_architecture = 'hrda1-512-0.1_daformer_sepaspp_sl_mitb5'
