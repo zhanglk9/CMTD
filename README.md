@@ -1,7 +1,8 @@
 ## HRDA: Context-Aware High-Resolution Domain-Adaptive Semantic Segmentation
 
-## Comparison with SOTA UDA
+## Improvement
+![attention head improvement](resources/cyg1.png)
 
-HRDA significantly outperforms previous works on several UDA benchmarks.
-This includes synthetic-to-real adaptation on GTA→Cityscapes and
+## Comparison
+![Comparison](resources/cyg2.png)
 
