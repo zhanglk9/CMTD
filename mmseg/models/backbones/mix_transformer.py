@@ -222,7 +222,7 @@ class MixVisionTransformer(BaseModule):
         self.depths = depths
         self.pretrained = pretrained
         self.init_cfg = init_cfg
-
+        self.embed_dims = embed_dims
         # patch_embed
         self.patch_embed1 = OverlapPatchEmbed(
             img_size=img_size,
@@ -399,11 +399,11 @@ class MixVisionTransformer(BaseModule):
         outs = []
 
         # stage 1
-        x, H, W = self.patch_embed1(x)
+        x, H, W = self.patch_embed1(x) #x[2, 16384, 64]
         for i, blk in enumerate(self.block1):
             x = blk(x, H, W)
         x = self.norm1(x)
-        x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
+        x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()#[2, 64, 128, 128]
         outs.append(x)
 
         # stage 2
@@ -420,7 +420,7 @@ class MixVisionTransformer(BaseModule):
             x = blk(x, H, W)
         x = self.norm3(x)
         x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
-        outs.append(x)
+        outs.append(x)# x [2, 320, 32, 32]
 
         # stage 4
         x, H, W = self.patch_embed4(x)

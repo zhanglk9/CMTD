@@ -132,8 +132,8 @@ def rcs_gta_selection(rcs_data_root,
 
 
 if __name__ == "__main__":
-    rcs_data_root='data/dginstyle_gen/half_adverse_half_normal/'
-    output_folder=f'data/'
+    rcs_data_root='/data/dushiyan/half_adverse_half_normal/'
+    output_folder=f'/data/dushiyan/dg_rcs'
 
     rcs_gta_selection(rcs_data_root, output_folder)
 

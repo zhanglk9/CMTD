@@ -235,7 +235,6 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
         if self.sampler is not None:
             seg_weight = self.sampler.sample(seg_logit, seg_label)
         seg_label = seg_label.squeeze(1)
-        
         loss['loss_seg'] = self.loss_decode(
             seg_logit,
             seg_label,

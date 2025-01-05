@@ -83,7 +83,6 @@ def save_class_stats(out_dir, sample_class_stats):
                 samples_with_class[c] = [(file, n)]
             else:
                 samples_with_class[c].append((file, n))
-    import ipdb;ipdb.set_trace()
     with open(osp.join(out_dir, 'samples_with_class.json'), 'w') as of:
         json.dump(samples_with_class, of, indent=2)
 

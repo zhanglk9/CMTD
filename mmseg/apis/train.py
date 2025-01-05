@@ -63,7 +63,7 @@ def train_segmentor(model,
     # put model on gpus
     if distributed:
         find_unused_parameters = cfg.get('find_unused_parameters', False)
-        use_ddp_wrapper = cfg.get('use_ddp_wrapper', False)
+        use_ddp_wrapper = False
         # Sets the `find_unused_parameters` parameter in
         # torch.nn.parallel.DistributedDataParallel
         if use_ddp_wrapper:
@@ -81,8 +81,7 @@ def train_segmentor(model,
                 find_unused_parameters=find_unused_parameters)
     else:
         model = MMDataParallel(
-            model.cuda(5), device_ids=[5])
-            # model.cuda(cfg.gpu_ids[0]), device_ids=cfg.gpu_ids)
+            model.cuda(cfg.gpu_ids[0]), device_ids=cfg.gpu_ids)
 
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)
@@ -121,7 +120,7 @@ def train_segmentor(model,
             dist=distributed,
             shuffle=False)
         eval_cfg = cfg.get('evaluation', {})
-        eval_cfg['by_epoch'] = cfg.runner['type'] != 'IterBasedRunner'
+        eval_cfg['by_epoch'] = False
         eval_hook = DistEvalHook if distributed else EvalHook
         runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
 

@@ -13,4 +13,5 @@ log_level = 'INFO'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]
+#workflow = [('train', 25000), ('train', 40000)]
 cudnn_benchmark = True

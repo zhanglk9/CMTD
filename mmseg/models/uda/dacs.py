@@ -30,7 +30,7 @@ from mmseg.core import add_prefix
 from mmseg.models import UDA, HRDAEncoderDecoder, build_segmentor
 from mmseg.models.segmentors.hrda_encoder_decoder import crop
 from mmseg.models.uda.uda_decorator import UDADecorator, get_module
-from mmseg.models.utils.dacs_transforms import (denorm, get_class_masks,generate_class_mask,get_class_masks_rare,
+from mmseg.models.utils.dacs_transforms import (denorm, get_class_masks,
                                                 get_mean_std, strong_transform)
 from mmseg.models.utils.visualization import subplotimg
 from mmseg.utils.utils import downscale_label_ratio
@@ -413,7 +413,7 @@ class DACS(UDADecorator):
         # torch.cuda.empty_cache()
         # import ipdb; ipdb.set_trace()
 
-        if self.local_iter > 25000:
+        if self.local_iter > 30000:
             mixed_img, mixed_lbl = [None] * batch_size, [None] * batch_size
             mix_masks = get_class_masks(pseudo_label)
 

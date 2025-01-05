@@ -6,8 +6,6 @@
 from copy import deepcopy
 
 import torch
-import cv2
-import numpy as np
 from torch.nn import functional as F
 
 from ...core import add_prefix
@@ -17,33 +15,6 @@ from ..builder import HEADS
 from ..segmentors.hrda_encoder_decoder import crop
 from .decode_head import BaseDecodeHead
 
-import colorsys
-
-def id2rgb(id, max_num_obj=256):
-    if not 0 <= id <= max_num_obj:
-        raise ValueError("ID should be in range(0, max_num_obj)")
-
-    # Convert the ID into a hue value
-    golden_ratio = 1.6180339887
-    h = ((id * golden_ratio) % 1)  # Ensure value is between 0 and 1
-    s = 0.5 + (id % 2) * 0.5  # Alternate between 0.5 and 1.0
-    l = 0.5
-
-    # Use colorsys to convert HSL to RGB
-    rgb = np.zeros((3,), dtype=np.uint8)
-    if id == 0:  # invalid region
-        return rgb
-    r, g, b = colorsys.hls_to_rgb(h, l, s)
-    rgb[0], rgb[1], rgb[2] = int(r * 255), int(g * 255), int(b * 255)
-
-    return rgb
-def visualize_obj(objects):
-    rgb_mask = np.zeros((*objects.shape[-2:], 3), dtype=np.uint8)
-    all_obj_ids = np.unique(objects)
-    for id in all_obj_ids:
-        colored_mask = id2rgb(id)
-        rgb_mask[objects == id] = colored_mask
-    return rgb_mask
 
 def scale_box(box, scale):
     y1, y2, x1, x2 = box
@@ -63,6 +34,7 @@ class HRDAHead(BaseDecodeHead):
 
     def __init__(self,
                  single_scale_head,
+                 auxiliary_scale_head,
                  lr_loss_weight=0,
                  hr_loss_weight=0,
                  scales=[1],
@@ -102,7 +74,8 @@ class HRDAHead(BaseDecodeHead):
         head_cfg['type'] = single_scale_head
         self.head = builder.build_head(head_cfg)
 
-        attn_cfg['type'] = single_scale_head
+        # attn_cfg['type'] = single_scale_head
+        attn_cfg['type'] = auxiliary_scale_head 
         if not attention_classwise:
             attn_cfg['num_classes'] = 1
         if fixed_attention is None:
@@ -189,11 +162,9 @@ class HRDAHead(BaseDecodeHead):
         # print_log(f'lr_inp {[f.shape for f in lr_inp]}', 'mmseg')
         lr_seg = self.head(lr_inp)
         # print_log(f'lr_seg {lr_seg.shape}', 'mmseg')
-
-        #这儿为什么和lr不一样/不同的box-crop来拼成一整张图，应该是为了降低计算
+        #([2, 1024, 128, 128])
+        # print(f'lr_sc_att_inp: {[f.shape for f in lr_sc_att_inp]}') #[2, 1024, 128, 128],64,32,16
         hr_seg = self.decode_hr(hr_inp, batch_size)
-
-        #对应attention-head
         att = self.get_scale_attention(lr_sc_att_inp)
         if has_crop:
             mask = lr_seg.new_zeros([lr_seg.shape[0], 1, *lr_seg.shape[2:]])
@@ -255,39 +226,6 @@ class HRDAHead(BaseDecodeHead):
             assert self.hr_crop_box is not None
         seg_logits = self.forward(inputs)
         losses = self.losses(seg_logits, gt_semantic_seg, seg_weight)
-        
-        def edge_loss_dice(probs, target):
-            intersection = (probs * target).sum()
-            union = probs.sum() + target.sum()
-            dice_loss = 1 - (2.0 * intersection + 1e-10) / (union + 1e-10)
-            return dice_loss
-        def canny_edge(gt_semantic_seg):
-            edges=[]
-            for i in range(len(gt_semantic_seg)):
-                imagei = gt_semantic_seg[i][0].detach().cpu().numpy().astype(np.uint8)
-                imagei = visualize_obj(imagei)
-                blurred = cv2.GaussianBlur(imagei, (5, 5), 0)
-                edge = np.expand_dims(cv2.Canny(blurred, 30, 100), axis=0)
-                edges.append(edge)
-            edges_np = np.array(edges)
-            return torch.tensor(edges_np,dtype=torch.float32)
-        
-        from mmseg.ops import resize
-        gt_edge = canny_edge(gt_semantic_seg)
-
-        # print(self.get_model().decode_head.debug_output.keys())
-        pred_semantic_seg = resize(
-            input=torch.max(seg_logits[0], dim=1)[1].detach().unsqueeze(1).float(),
-            size=gt_semantic_seg.shape[2:],
-            mode='bilinear',
-            align_corners=False)
-        pred_edg = canny_edge(pred_semantic_seg.long())
-        pred_edg = pred_edg / 255.0
-        gt_edge = gt_edge / 255.0
-        bce_loss = F.binary_cross_entropy(pred_edg, gt_edge) / 20.0
-        dice_loss = edge_loss_dice(pred_edg, gt_edge)
-        edg_loss = bce_loss * 0.5 + dice_loss * 0.5
-        losses['loss_seg']+edg_loss.item()
         self.reset_crop()
         return losses
 
@@ -298,7 +236,6 @@ class HRDAHead(BaseDecodeHead):
     def losses(self, seg_logit, seg_label, seg_weight=None):
         """Compute losses."""
         fused_seg, lr_seg, hr_seg = seg_logit
-        
         loss = super(HRDAHead, self).losses(fused_seg, seg_label, seg_weight)
         if self.hr_loss_weight == 0 and self.lr_loss_weight == 0:
             return loss
