@@ -404,16 +404,9 @@ class DACS(UDADecorator):
         log_vars.update(mix_log_vars)
         mix_loss.backward()
         # import ipdb; ipdb.set_trace()
-        #==========add==================
-        # del mixed_img
-        # del mixed_lbl
-        # del mix_losses
-        # del mix_log_vars
-        # del mix_masks
-        # torch.cuda.empty_cache()
-        # import ipdb; ipdb.set_trace()
 
-        if self.local_iter > 30000:
+
+        if self.local_iter > 25000:
             mixed_img, mixed_lbl = [None] * batch_size, [None] * batch_size
             mix_masks = get_class_masks(pseudo_label)
 
@@ -448,37 +441,6 @@ class DACS(UDADecorator):
             mix_loss, mix_log_vars = self._parse_losses(mix_losses)
             log_vars.update(mix_log_vars)
             mix_loss.backward()
-        # else:
-        #     mixed_img, mixed_lbl = [None] * batch_size, [None] * batch_size
-
-        #     mix_masks = get_class_masks(gt_semantic_seg)
-
-        #     for i in range(batch_size):
-        #         # import ipdb; ipdb.set_trace()
-        #         strong_parameters['mix'] = mix_masks[i]
-        #         if i==0:
-        #             mixed_img[i], mixed_lbl[i] = strong_transform(
-        #                 strong_parameters,
-        #                 data=torch.stack((img[i+1], img[i])),
-        #                 target=torch.stack((gt_semantic_seg[i+1], gt_semantic_seg[i])))
-        #         else:
-        #             mixed_img[i], mixed_lbl[i] = strong_transform(
-        #                 strong_parameters,
-        #                 data=torch.stack((img[i], img[i-1])),
-        #                 target=torch.stack((gt_semantic_seg[i], gt_semantic_seg[i-1])))
-        #     # del gt_pixel_weight
-        #     mixed_img = torch.cat(mixed_img)
-        #     mixed_lbl = torch.cat(mixed_lbl)
-
-        #     # Train on mixed images
-        #     mix_losses = self.get_model().forward_train(
-        #         mixed_img, img_metas, mixed_lbl, gt_pixel_weight, return_feat=False)
-        #     # seg_debug['Mix'] = self.get_model().decode_head.debug_output
-        #     mix_losses = add_prefix(mix_losses, 'mix')
-        #     mix_loss, mix_log_vars = self._parse_losses(mix_losses)
-        #     # log_vars.update(mix_log_vars)
-        #     # mix_loss = mix_loss + (mix_loss2 / 2.0)
-        #     mix_loss.backward()
 
         if self.local_iter % self.debug_img_interval == 0:
             out_dir = os.path.join(self.train_cfg['work_dir'],

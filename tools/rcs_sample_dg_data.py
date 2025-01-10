@@ -11,7 +11,7 @@ import torch
 from tqdm import tqdm
 import shutil
 from glob import glob
-
+from PIL import Image
 
 def copy_imgs(src_dir, tar_dir):
     files = sorted(glob(osp.join(src_dir, "images", "*.png")))
@@ -54,7 +54,7 @@ def get_rcs_class_probs(data_root, temperature):
 
 def rcs_gta_selection(rcs_data_root, 
                     output_folder, 
-                    n_images=4000, 
+                    n_images=2000, 
                     rcs_temperature=0.01,
                     rcs_min_pixels=3000):
     # Set up RCS    
@@ -126,14 +126,22 @@ def rcs_gta_selection(rcs_data_root,
 
         src_img_path = file.replace('_labelTrainIds.png', '.png').replace('labels', 'images')
         src_label_path = file
+        # import ipdb;ipdb.set_trace()
+ 
+        with Image.open(src_img_path) as img:
+            resized_img = img.resize((1024, 1024))  # 调整大小
+            resized_img.save(tar_image_path)  # 保存到目标路径
+        with Image.open(src_label_path) as lab:
+            resized_lab = lab.resize((1024, 1024))  # 调整大小
+            resized_lab.save(tar_label_path)  # 保存到目标路径
 
-        shutil.copy(src_img_path, tar_image_path)
-        shutil.copy(src_label_path, tar_label_path)
+        # shutil.copy(src_img_path, tar_image_path)
+        # shutil.copy(src_label_path, tar_label_path)
 
 
 if __name__ == "__main__":
-    rcs_data_root='/data/dushiyan/half_adverse_half_normal/'
-    output_folder=f'/data/dushiyan/dg_rcs'
+    rcs_data_root='data/dginstyle_gen/half_adverse_half_normal/'
+    output_folder=f'data/'
 
     rcs_gta_selection(rcs_data_root, output_folder)
 

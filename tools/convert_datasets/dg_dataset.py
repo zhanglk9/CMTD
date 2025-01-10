@@ -18,13 +18,18 @@ def convert_to_train_id(file):
     pil_label = Image.open(file)
     label = np.asarray(pil_label)
     id_to_trainid = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+    label_copy = 255 * np.ones(label.shape, dtype=np.uint8)
     sample_class_stats = {}
     for v in id_to_trainid:
         k_mask = label == v
+        label_copy[k_mask] = v
         n = int(np.sum(k_mask))
         if n > 0:
             sample_class_stats[v] = n
-    sample_class_stats['file'] = file
+    
+    new_file = file.replace('gta2000_rcs1e-2', 'gta')
+    sample_class_stats['file'] = new_file
+    #Image.fromarray(label_copy, mode='L').save(new_file)
     return sample_class_stats
 
 
@@ -75,9 +80,12 @@ def main():
     for poly in mmcv.scandir(
             gt_dir, suffix=tuple('_labelTrainIds.png'),
             recursive=True):
-        poly_file = osp.join(gt_dir, poly)
-        poly_files.append(poly_file)
+        if not poly.startswith(('a', 'n')):
+            if poly.endswith('_labelTrainIds.png'):
+                poly_file = osp.join(gt_dir, poly)
+                poly_files.append(poly_file)
     poly_files = sorted(poly_files)
+    # import ipdb;ipdb.set_trace()
 
     only_postprocessing = False
     if not only_postprocessing:
