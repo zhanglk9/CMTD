@@ -25,17 +25,16 @@ pip install -r requirements.txt -f https://download.pytorch.org/whl/torch_stable
 pip install mmcv-full==1.3.7  # requires the other packages to be installed first
 ```
 
-Please, download the MiT-B5 ImageNet weights provided by [SegFormer](https://github.com/NVlabs/SegFormer?tab=readme-ov-file#training)
-from their [OneDrive](https://connecthkuhk-my.sharepoint.com/:f:/g/personal/xieenze_connect_hku_hk/EvOn3l1WyM5JpnMQFSEO5b8B7vrHw9kDaJGII-3N9KNhrg?e=cpydzZ) and put them in the folder `pretrained/`.
-Further, download the checkpoint of [HRDA on GTA→Cityscapes](https://drive.google.com/file/d/1O6n1HearrXHZTHxNRWp8HCMyqbulKcSW/view?usp=sharing) and extract it to the folder `work_dirs/`.
-
-In order to use Vit-Adapter, please install some extra environments requirements first.
+In order to use Vit-Adapter, you need to install some extra environments requirements.
 
 ```shell
 pip install timm==0.4.12
 cd mmseg/models/ops
 sh make.sh # compile deformable attention
 ```
+
+Please download the BEiT weights provided by [BEiT](https://github.com/microsoft/unilm/tree/master/beit) from BEiT-large: [beit_large_patch16_224_pt22k_ft22k](https://github.com/addf400/files/releases/download/v1.0/beit_large_patch16_224_pt22k_ft22k.pth) and put it in the folder `pretrained/`.
+
 
 
 ## Training
