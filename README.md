@@ -6,7 +6,7 @@
 The main design philosophy of ViT-Adapter lies in adding an auxiliary branch to the original Vision Transformer (ViT).
 
 ## Results
-![backbone result](resources/vit-adapter.png)
+![backbone result](resources/result.png)
 
 ## Setup Environment
 
