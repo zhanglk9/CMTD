@@ -1,5 +1,6 @@
 ## HRDA: Context-Aware High-Resolution Domain-Adaptive Semantic Segmentation
 
+![dataparts](resources/data_parts.png)
 ## Setup Environment
 
 For this project, we used python 3.8.5. We recommend setting up a new virtual
@@ -45,6 +46,7 @@ python tools/convert_datasets/synthia.py data/synthia/ --nproc 8
 ```
 
 ## Style transfer
+![style](resources/style.png)
 If you want try DGInstyle, please ref [DGInstyle](https://github.com/prs-eth/DGInStyle), and then we filter useful data based on rare classes and lighting conditions, runs:
 ```shell
 python tools/rcs_sample_dg_data.py
@@ -80,3 +82,7 @@ Cityscapes validation set using:
 ```shell
 sh test.sh work_dirs/gtaHR2csHR_hrda_246ef
 ```
+## Why is Reliable pseudo-tags？
+
+![why1](resources/why1.png)
+![why2](resources/why2.png)
