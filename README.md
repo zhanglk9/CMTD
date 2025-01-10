@@ -49,8 +49,8 @@ python tools/convert_datasets/synthia.py data/synthia/ --nproc 8
 ![style](resources/style.png)
 If you want try DGInstyle, please ref [DGInstyle](https://github.com/prs-eth/DGInStyle), and then we filter useful data based on rare classes and lighting conditions, runs:
 ```shell
+python tools/convert_datasets/gta.py data/dg_dataset/halfxxx --nproc 8
 python tools/rcs_sample_dg_data.py
-python tools/convert_datasets/dg_dataset.py
 #!!!!Need to manually modify the file internal path name!!!!
 python json_add.py
 ```
