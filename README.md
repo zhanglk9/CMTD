@@ -1,4 +1,16 @@
-## HRDA: Context-Aware High-Resolution Domain-Adaptive Semantic Segmentation
+## HRDA-Plus: Rename last
+![dataparts](resources/merged.png)
+abstract
+
+:bell: **Notes:**
+
+This project contains multiple branches, which store the code of different innovative parts.
+
+Details: 
+
+- **[P2P/style_transfer](https://github.com/zhanglk9/UDA-plus/tree/P2P/style_transfer)**: The data level is divided into three parts. The first is the P2P module, which is Reliable pseudo-tags to pseudo-tags, and then the edge loss. It extracts edge features for semantic segmentation and then performs loss to add new constraints to the model. The third part is the style transfer of source domain and target domain data to reduce the domain difference between source domain and target domain data;
+- **[backbone/vit-adapter](https://github.com/zhanglk9/UDA-plus/tree/backbone/vit-adapter)**: We introduce ViT-Adapter to combine the advantages of ViT and MiT-b5 to improve global semantic modeling, modular adaptability and feature expression flexibility. ViT-Adapter adds a branch to the traditional Vision Transformer (ViT) to enhance local feature capture and multi-scale information modeling capabilities.
+- **[dpt_head](https://github.com/zhanglk9/UDA-plus/tree/dpt_head)**: We introduce the DPT structure adopted in dense vision transformers, an architecture that utilizes ViT instead of CNN for dense prediction tasks. The Transformer backbone processes consistent and relatively high-resolution inputs and has a global receptive field at each stage. These properties allow the Dense Vision Transformer to provide finer-grained and more globally consistent predictions compared to traditional CNNs.
 
 ## Setup Environment
 
@@ -21,6 +33,31 @@ Please, download the MiT-B5 ImageNet weights provided by [SegFormer](https://git
 from their [OneDrive](https://connecthkuhk-my.sharepoint.com/:f:/g/personal/xieenze_connect_hku_hk/EvOn3l1WyM5JpnMQFSEO5b8B7vrHw9kDaJGII-3N9KNhrg?e=cpydzZ) and put them in the folder `pretrained/`.
 Further, download the checkpoint of [HRDA on GTA→Cityscapes](https://drive.google.com/file/d/1O6n1HearrXHZTHxNRWp8HCMyqbulKcSW/view?usp=sharing) and extract it to the folder `work_dirs/`.
 
+In order to use Vit-Adapter, please install some extra environments requirements first.
+
+```shell
+pip install timm==0.4.12
+cd mmseg/models/ops
+sh make.sh # compile deformable attention
+```
+
+## Style transfer
+![style](resources/style.png)
+If you want try DGInstyle, please ref [DGInstyle](https://github.com/prs-eth/DGInStyle), and then we filter useful data based on rare classes and lighting conditions, runs:
+```shell
+python tools/convert_datasets/gta.py data/dg_dataset/halfxxx --nproc 8
+python tools/rcs_sample_dg_data.py
+#!!!!Need to manually modify the file internal path name!!!!
+python json_add.py
+```
+If you want try Basic transfer, please runs:
+```shell
+python tools/convert_datasets/base_transfer.py
+python tools/convert_datasets/gta.py data/basic_style --nproc 8
+#!!!!Need to manually modify the file internal path name!!!!
+python json_add.py
+```
+
 
 ## Training
 
@@ -41,10 +78,21 @@ Cityscapes validation set using:
 ```shell
 sh test.sh work_dirs/gtaHR2csHR_hrda_246ef
 ```
+## Work summary & Result
+### P2P & Style transfer
+![why1](resources/why1.png)
+![why2](resources/why2.png)
+#### Results
+![data_result](resources/data_resulut.png)
+### Backbone-Improvement
 
-## Improvement
+The main design philosophy of ViT-Adapter lies in adding an auxiliary branch to the original Vision Transformer (ViT).
+![backbone improvement](resources/vit-adapter.png)
+#### Results
+![backbone result](resources/result_backbone.png)
+### Attention Head-Improvement
 ![attention head improvement](resources/cyg1.png)
-
-## Comparison
+#### Results
 ![Comparison](resources/cyg2.png)
 
+### For more experimental results and details, please refer to the submitted article.
