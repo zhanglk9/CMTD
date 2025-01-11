@@ -1,4 +1,4 @@
-## HRDA: Context-Aware High-Resolution Domain-Adaptive Semantic Segmentation
+## Cross-Domain Semantic Segmentation with Continued Migration to Target Domain
 
 ## Improvement
 ![backbone improvement](resources/vit-adapter.png)
