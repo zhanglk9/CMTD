@@ -1,6 +1,6 @@
-## HRDA-Plus: Rename last
-![dataparts](resources/merged.png)
-abstract
+## Cross-Domain Semantic Segmentation with Continued Migration to Target Domain
+![dataparts](resources/all_parts.png)
+**Abstract:** Unsupervised domain adaptation (UDA) has become a key technology in machine learning, which enables models trained on labeled data in one domain to be effectively generalized to an unlabeled target domain. Existing UDA methods mainly address the challenges of cross-domain semantic segmentation by improving the information expression of data feature space and model network design, and achieve good results. Starting from making more full use of target domain data, this paper first proposes a novel P2P module to supervise segmentation task learning by leveraging reliable hybrid pseudo-labels.And we add necessary canny loss to accelerate convergence, so that the focus of the model is further transferred to the unknown domain. We also use multiple ways to perform stylized transfer to reduce the data domain difference. In addition, ViT-Adapter is introduced as a better feature extraction backbone to improve the fusion of global and local information, and DPT head is used to provide more fine-grained and globally consistent predictions. We validate our method in GTA5 → Cityscapes and Synthia → Cityscapes. When using the P2P module and stylized transfer, the segmentation results of our method reach 76.2% mIoU and 68.5%, which are 3.4mIoU and 2.7mIoU higher than the baseline, and reach the most advanced level in GTA5 → Cityscapes. If there is a larger VRAM, combined with the improvements of Backone and Attention Head, our method can achieve better results.
 
 :bell: **Notes:**
 
@@ -12,6 +12,7 @@ Details:
 - **[backbone/vit-adapter](https://github.com/zhanglk9/UDA-plus/tree/backbone/vit-adapter)**: We introduce ViT-Adapter to combine the advantages of ViT and MiT-b5 to improve global semantic modeling, modular adaptability and feature expression flexibility. ViT-Adapter adds a branch to the traditional Vision Transformer (ViT) to enhance local feature capture and multi-scale information modeling capabilities.
 - **[dpt_head](https://github.com/zhanglk9/UDA-plus/tree/dpt_head)**: We introduce the DPT structure adopted in dense vision transformers, an architecture that utilizes ViT instead of CNN for dense prediction tasks. The Transformer backbone processes consistent and relatively high-resolution inputs and has a global receptive field at each stage. These properties allow the Dense Vision Transformer to provide finer-grained and more globally consistent predictions compared to traditional CNNs.
 
+This code is developed based on [HRDA](https://github.com/lhoyer/HRDA). Some of the codes are not very clean due to timing issues. If necessary, we will continue to organize more concise code later. Stay tuned!
 ## Setup Environment
 
 For this project, we used python 3.8.5. We recommend setting up a new virtual
@@ -96,3 +97,4 @@ The main design philosophy of ViT-Adapter lies in adding an auxiliary branch to 
 ![Comparison](resources/cyg2.png)
 
 ### For more experimental results and details, please refer to the submitted article.
+
