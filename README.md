@@ -1,4 +1,4 @@
-## Cross-Domain Semantic Segmentation with Continued Migration to Target Domain
+## Cross-Domain Semantic Segmentation with Continued Migration to Target Domain 
 
 ## Improvement
 ![backbone improvement](resources/vit-adapter.png)
