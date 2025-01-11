@@ -1,4 +1,4 @@
-## HRDA: Context-Aware High-Resolution Domain-Adaptive Semantic Segmentation
+## Cross-Domain Semantic Segmentation with Continued Migration to Target Domain
 
 ![dataparts](resources/data_parts.png)
 ## Setup Environment
