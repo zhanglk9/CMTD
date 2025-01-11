@@ -1,5 +1,4 @@
-## Cross-Domain Semantic Segmentation with Continued Migration to Target
- Domain
+## Cross-Domain Semantic Segmentation with Continued Migration to Target Domain
 
 ## Setup Environment
 
