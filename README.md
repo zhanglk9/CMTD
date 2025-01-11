@@ -41,6 +41,8 @@ pip install timm==0.4.12
 cd mmseg/models/ops
 sh make.sh # compile deformable attention
 ```
+Please download the BEiT weights provided by [BEiT](https://github.com/microsoft/unilm/tree/master/beit) from BEiT-large: [beit_large_patch16_224_pt22k_ft22k](https://github.com/addf400/files/releases/download/v1.0/beit_large_patch16_224_pt22k_ft22k.pth) and put it in the folder `pretrained/`.
+
 
 ## Style transfer
 ![style](resources/style.png)
